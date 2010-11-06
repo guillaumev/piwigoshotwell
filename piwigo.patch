@@ -1,0 +1,63 @@
+Index: src/Config.vala
+===================================================================
+--- src/Config.vala	(revisión: 2331)
++++ src/Config.vala	(copia de trabajo)
+@@ -273,6 +273,34 @@
+         return get_int("/apps/shotwell/sharing/picasa/default_size", 3) - 1;
+     }
+ 
++    public string? get_picasa_auth_token() {
++        return get_string("/apps/shotwell/sharing/picasa/auth_token");
++    }
++    
++    public string? get_piwigo_url() {
++        return get_string("/apps/shotwell/sharing/piwigo/url");
++    }
++    
++    public bool set_piwigo_url(string url) {
++        return set_string("/apps/shotwell/sharing/piwigo/url", url);
++    }
++    
++    public string? get_piwigo_user_name() {
++        return get_string("/apps/shotwell/sharing/piwigo/user_name");
++    }
++    
++    public bool set_piwigo_user_name(string user_name) {
++        return set_string("/apps/shotwell/sharing/piwigo/user_name", user_name);
++    }
++    
++    public string? get_piwigo_id() {
++        return get_string("/apps/shotwell/sharing/piwigo/id");
++    }
++    
++    public bool set_piwigo_id(string id) {
++        return set_string("/apps/shotwell/sharing/piwigo/id", id);
++    }
++
+     public string? get_publishing_string(string id, string key) {
+         return get_string(_("/apps/shotwell/sharing/%s/%s").printf(id, key));
+     }
+Index: src/WebConnectors.vala
+===================================================================
+--- src/WebConnectors.vala	(revisión: 2331)
++++ src/WebConnectors.vala	(copia de trabajo)
+@@ -1176,6 +1176,7 @@
+         add_caps(new PicasaConnector.Capabilities());
+         add_caps(new YandexConnector.Capabilities());
+         add_caps(new YouTubeConnector.Capabilities());
++        add_caps(new PiwigoConnector.Capabilities());
+     }
+     
+     private void add_caps(ServiceCapabilities caps) {
+Index: Makefile
+===================================================================
+--- Makefile	(revisión: 2331)
++++ Makefile	(copia de trabajo)
+@@ -102,6 +102,7 @@
+ 	Tag.vala \
+ 	TagPage.vala \
+ 	PicasaConnector.vala \
++        PiwigoConnector.vala \
+ 	YouTubeConnector.vala \
+ 	Screensaver.vala \
+ 	PhotoFileAdapter.vala \
