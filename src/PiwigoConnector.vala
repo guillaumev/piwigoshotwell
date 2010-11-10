@@ -11,6 +11,7 @@ namespace PiwigoConnector {
   private const string SERVICE_WELCOME_MESSAGE = 
     _("You are not currently logged into your Piwigo Web Album.\n\nPlease enter the URL of your Piwigo installation and your username and password");
   private const string DEFAULT_CATEGORY_NAME = _("Shotwell Connect");
+  private const string CONFIG_NAME = "piwigo";
     
   private struct Category {
     int id;
@@ -74,7 +75,7 @@ namespace PiwigoConnector {
     }
     
     public override ServiceCapabilities.MediaType get_supported_media() {
-      return MediaType.PHOTO | MediaType.VIDEO;
+      return MediaType.PHOTO;
     }
     
     public override ServiceInteractor factory(PublishingDialog host) {
@@ -965,33 +966,33 @@ namespace PiwigoConnector {
     private bool has_persistent_state() {
       Config config = Config.get_instance();
 
-      return ((config.get_piwigo_url() != null) &&
-              (config.get_piwigo_user_name() != null) &&
-              (config.get_piwigo_id() != null));
+      return ((config.get_publishing_string(CONFIG_NAME, "url") != null) &&
+              (config.get_publishing_string(CONFIG_NAME, "username") != null) &&
+              (config.get_publishing_string(CONFIG_NAME, "id") != null));
     }
     
     private void save_persistent_state() {
       Config config = Config.get_instance();
-
-      config.set_piwigo_url(pwg_url);
-      config.set_piwigo_user_name(username);
-      config.set_piwigo_id(pwg_id);
+      
+      config.set_publishing_string(CONFIG_NAME, "url", pwg_url);
+      config.set_publishing_string(CONFIG_NAME, "username", username);
+      config.set_publishing_string(CONFIG_NAME, "id", pwg_id);
     }
 
     private void load_persistent_state() {
       Config config = Config.get_instance();
 
-      pwg_url = config.get_piwigo_url();
-      username = config.get_piwigo_user_name();
-      pwg_id = config.get_piwigo_id();
+      pwg_url = config.get_publishing_string(CONFIG_NAME, "url");
+      username = config.get_publishing_string(CONFIG_NAME, "username");
+      pwg_id = config.get_publishing_string(CONFIG_NAME, "id");
     }
     
     private void clear_persistent_state() {
       Config config = Config.get_instance();
 
-      config.set_piwigo_url("");
-      config.set_piwigo_user_name("");
-      config.set_piwigo_id("");
+      config.set_publishing_string(CONFIG_NAME, "url", "");
+      config.set_publishing_string(CONFIG_NAME, "username", "");
+      config.set_publishing_string(CONFIG_NAME, "id", "");
     }
 
     public bool is_authenticated() {
