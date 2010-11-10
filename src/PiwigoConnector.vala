@@ -8,8 +8,6 @@
 
 namespace PiwigoConnector {
   private const string SERVICE_NAME = "Piwigo";
-  private const string SERVICE_WELCOME_MESSAGE = 
-    _("You are not currently logged into your Piwigo Web Album.\n\nPlease enter the URL of your Piwigo installation and your username and password");
   private const string DEFAULT_CATEGORY_NAME = _("Shotwell Connect");
   private const string CONFIG_NAME = "piwigo";
     
@@ -95,23 +93,6 @@ namespace PiwigoConnector {
     public Interactor(PublishingDialog host) {
       base(host);
       session = new Session();
-    }
-    
-    // EVENT: triggered when the user clicks "Login" in the service welcome pane
-    private void on_service_welcome_login() {
-      if (has_error() || cancelled)
-          return;
-
-      do_show_credentials_capture_pane(CredentialsCapturePane.Mode.INTRO);
-    }
-    
-    // EVENT: triggered when the user clicks the "Go Back" button in the credentials capture pane
-    private void on_credentials_go_back() {
-      // ignore all events if the user has cancelled or we have and error situation
-      if (has_error() || cancelled)
-          return;
-
-      do_show_service_welcome_pane();
     }
     
     // EVENT: triggered when the user clicks "Login" in the credentials capture pane
@@ -237,6 +218,10 @@ namespace PiwigoConnector {
       debug("PiwigoConnector: list of categories: %s", txn.get_response());
       if (has_error() || cancelled)
         return;
+      // Empty the categories
+      if (categories != null) {
+        categories = null;
+      }
       // Parse the response
       try {
         RESTXmlDocument doc = RESTXmlDocument.parse_string(txn.get_response(), Transaction.check_response);
@@ -268,9 +253,6 @@ namespace PiwigoConnector {
       if (has_error() || cancelled)
           return;
       
-      //session.deauthenticate();
-      
-      //do_show_service_welcome_pane();
       // Send logout transaction
       SessionLogoutTransaction logout_trans = new SessionLogoutTransaction(session);
       logout_trans.network_error.connect(on_logout_network_error);
@@ -295,7 +277,7 @@ namespace PiwigoConnector {
       
       session.deauthenticate();
       
-      do_show_service_welcome_pane();
+      do_show_credentials_capture_pane(CredentialsCapturePane.Mode.INTRO);
     }
     
     // EVENT: triggered when the user clicks "Publish" in the publishing options pane
@@ -375,24 +357,11 @@ namespace PiwigoConnector {
         post_error(err);
     }
     
-    
-    // ACTION: display the service welcome pane in the publishing dialog
-    private void do_show_service_welcome_pane() {
-      LoginWelcomePane service_welcome_pane = new LoginWelcomePane(SERVICE_WELCOME_MESSAGE);
-      service_welcome_pane.login_requested.connect(on_service_welcome_login);
-
-      get_host().unlock_service();
-      get_host().set_cancel_button_mode();
-
-      get_host().install_pane(service_welcome_pane);
-    }
-    
     // ACTION: display the credentials capture pane in the publishing dialog; the credentials
     //         capture pane can be displayed in different "modes" that display different
     //         messages to the user
     private void do_show_credentials_capture_pane(CredentialsCapturePane.Mode mode) {
         CredentialsCapturePane creds_pane = new CredentialsCapturePane(this, mode);
-        creds_pane.go_back.connect(on_credentials_go_back);
         creds_pane.login.connect(on_credentials_login);
 
         get_host().unlock_service();
@@ -534,7 +503,7 @@ namespace PiwigoConnector {
       get_host().set_standard_window_mode();
 
       if (!session.is_authenticated()) {
-          do_show_service_welcome_pane();
+          do_show_credentials_capture_pane(CredentialsCapturePane.Mode.INTRO);
       } else {
           do_fetch_categories();
       }
@@ -590,10 +559,8 @@ namespace PiwigoConnector {
     private Gtk.Entry user_entry;
     private Gtk.Entry password_entry;
     private Gtk.Button login_button;
-    private Gtk.Button go_back_button;
     private weak Interactor interactor;
 
-    public signal void go_back();
     public signal void login(string url, string user, string password);
 
     public CredentialsCapturePane(Interactor interactor, Mode mode = Mode.INTRO) {
@@ -658,20 +625,12 @@ namespace PiwigoConnector {
       entry_widgets_table.attach(password_entry, 1, 2, 2, 3,
           Gtk.AttachOptions.EXPAND | Gtk.AttachOptions.FILL,
           Gtk.AttachOptions.EXPAND | Gtk.AttachOptions.FILL, 6, 6);
-      go_back_button = new Gtk.Button.with_mnemonic(_("Go _Back"));
-      go_back_button.clicked.connect(on_go_back_button_clicked);
-      Gtk.Alignment go_back_button_aligner = new Gtk.Alignment(0.0f, 0.5f, 0.0f, 0.0f);
-      go_back_button_aligner.add(go_back_button);
-      go_back_button.set_size_request(UNIFORM_ACTION_BUTTON_WIDTH, -1);
       login_button = new Gtk.Button.with_mnemonic(_("_Login"));
       login_button.clicked.connect(on_login_button_clicked);
       login_button.set_sensitive(false);
       Gtk.Alignment login_button_aligner = new Gtk.Alignment(1.0f, 0.5f, 0.0f, 0.0f);
       login_button_aligner.add(login_button);
       login_button.set_size_request(UNIFORM_ACTION_BUTTON_WIDTH, -1);
-      entry_widgets_table.attach(go_back_button_aligner, 0, 1, 3, 4,
-          Gtk.AttachOptions.EXPAND | Gtk.AttachOptions.FILL,
-          Gtk.AttachOptions.EXPAND | Gtk.AttachOptions.FILL, 6, 40);
       entry_widgets_table.attach(login_button_aligner, 1, 2, 3, 4,
           Gtk.AttachOptions.EXPAND | Gtk.AttachOptions.FILL,
           Gtk.AttachOptions.EXPAND | Gtk.AttachOptions.FILL, 6, 40);
@@ -688,10 +647,6 @@ namespace PiwigoConnector {
 
     private void on_login_button_clicked() {
         login(url_entry.get_text(), user_entry.get_text(), password_entry.get_text());
-    }
-
-    private void on_go_back_button_clicked() {
-        go_back();
     }
 
     private void on_user_changed() {
