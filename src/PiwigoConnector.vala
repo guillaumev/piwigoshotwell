@@ -1094,17 +1094,38 @@ private class ImagesAddTransaction : Transaction {
 
     public ImagesAddTransaction(Session session, PublishingParameters parameters, string source_file, MediaSource media_source) {
         base.authenticated(session);
-        debug("PiwigoConnector: Uploading photo %s", media_source.get_name());
         this.session_copy = session;
         this.source_file = source_file;
         this.media_source = media_source;
+        
+        Photo photo = (Photo) media_source;
+        
+        LibraryPhoto lphoto = LibraryPhoto.global.fetch(photo.get_photo_id());
 
+        Gee.List<Tag>? photo_tags = Tag.global.fetch_for_source(lphoto);
+        string tags = "";
+        if (photo_tags != null) {
+            int i = 0;
+            foreach (Tag tag in photo_tags) {
+                if (i != 0) {
+                    tags += ",";
+                }
+                tags += tag.get_name();
+                i++;
+            }
+        }
+        debug("photo: '%s', tags: '%s'", photo.get_title(), tags);
+        
+        debug("PiwigoConnector: Uploading photo %s to category id %s with perm level %s", media_source.get_name(), parameters.get_category_id().to_string(), parameters.get_perm_level().to_string());
         add_argument("method", "pwg.images.addSimple");
         add_argument("category", parameters.get_category_id().to_string());
-        add_argument("name", media_source.get_title());
+        add_argument("name", photo.get_title());
         add_argument("level", parameters.get_perm_level().to_string());
+        if (tags != "") {
+            add_argument("tags", tags);
+        }
 
-        // TODO: add tags and description, author etc...
+        // TODO: add description, author etc...
 
         GLib.HashTable<string, string> disposition_table = new GLib.HashTable<string, string>(GLib.str_hash, GLib.str_equal);
         disposition_table.insert("filename", media_source.get_name());
@@ -1118,11 +1139,6 @@ private class ImagesAddTransaction : Transaction {
 
     // Need to copy and paste this method to add the cookie header to the sent message.
     public override void execute() {
-        sign();
-
-        // before they can be executed, photo upload requests must be signed and must
-        // contain at least one argument
-        assert(get_is_signed());
 
         RESTArgument[] request_arguments = get_arguments();
         assert(request_arguments.length > 0);
@@ -1133,9 +1149,6 @@ private class ImagesAddTransaction : Transaction {
         // attach each REST argument as its own multipart formdata part
         foreach (RESTArgument arg in request_arguments)
             message_parts.append_form_string(arg.key, arg.value);
-
-        // append the signature key-value pair to the formdata string
-        message_parts.append_form_string(get_signature_key(), get_signature_value());
 
         // attempt to read the binary image data from disk
         string photo_data;
