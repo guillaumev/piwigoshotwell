@@ -1,4 +1,4 @@
-/* Copyright 2010 Guillaume Viguier-Just <guillaume@viguierjust.com>
+    /* Copyright 2010 Guillaume Viguier-Just <guillaume@viguierjust.com>
  * 
  * This software is licensed under the GNU LGPL (version 2.1 or later).
  * See the COPYING file in this distribution. 
@@ -7,25 +7,25 @@
 #if !NO_PUBLISHING
 
 namespace PiwigoConnector {
-  private const string SERVICE_NAME = "Piwigo";
-  private const string DEFAULT_CATEGORY_NAME = _("Shotwell Connect");
-  private const string CONFIG_NAME = "piwigo";
+private const string SERVICE_NAME = "Piwigo";
+private const string DEFAULT_CATEGORY_NAME = _("Shotwell Connect");
+private const string CONFIG_NAME = "piwigo";
     
-  private struct Category {
+private struct Category {
     int id;
     string name;
-    
+
     Category(int id, string name) {
-      this.id = id;
-      this.name = name;
+        this.id = id;
+        this.name = name;
     }
-  }
+}
   
-  private class PublishingParameters {
+private class PublishingParameters {
     private string category_name;
     private int category_id = 0;
     private int level = 0;
-    
+
     private PublishingParameters() {
     }
 
@@ -38,11 +38,11 @@ namespace PiwigoConnector {
         this.category_id = category_id;
         this.level = level;
     }
-    
+
     public bool is_to_new_category() {
         return (category_name != null);
     }
-    
+
     public string get_category_name() {
         assert(is_to_new_category());
         return category_name;
@@ -52,11 +52,11 @@ namespace PiwigoConnector {
         assert(!is_to_new_category());
         return category_id;
     }
-    
+
     public int get_perm_level() {
-      return level;
+        return level;
     }
-    
+
     // converts a publish-to-new-category parameters object into a publish-to-existing-category
     // parameters object
     public void convert(int category_id) {
@@ -64,24 +64,24 @@ namespace PiwigoConnector {
         category_name = null;
         this.category_id = category_id;
     }
+
+}
     
-  }
-    
-  public class Capabilities : ServiceCapabilities {
+public class Capabilities : ServiceCapabilities {
     public override string get_name() {
-      return SERVICE_NAME;
+        return SERVICE_NAME;
     }
-    
+
     public override ServiceCapabilities.MediaType get_supported_media() {
-      return MediaType.PHOTO;
+        return MediaType.PHOTO;
     }
-    
+
     public override ServiceInteractor factory(PublishingDialog host) {
-      return new Interactor(host);
+        return new Interactor(host);
     }
-  }
+}
   
-  public class Interactor : ServiceInteractor {
+public class Interactor : ServiceInteractor {
     private Session session = null;
     private bool cancelled = false;
     private const string PIWIGO_WS = "ws.php";
@@ -91,193 +91,193 @@ namespace PiwigoConnector {
     private ProgressPane progress_pane = null;
     
     public Interactor(PublishingDialog host) {
-      base(host);
-      session = new Session();
+        base(host);
+        session = new Session();
     }
     
     // EVENT: triggered when the user clicks "Login" in the credentials capture pane
     private void on_credentials_login(string url, string username, string password) {
-      if (has_error() || cancelled)
-          return;
+        if (has_error() || cancelled)
+            return;
 
-      do_network_login(url, username, password);
+        do_network_login(url, username, password);
     }
     
     // EVENT: triggered when an error occurs in the login transaction
     private void on_login_network_error(RESTTransaction bad_txn, PublishingError err) {
-      bad_txn.completed.disconnect(on_login_network_complete);
-      bad_txn.network_error.disconnect(on_login_network_error);
+        bad_txn.completed.disconnect(on_login_network_complete);
+        bad_txn.network_error.disconnect(on_login_network_error);
 
-      if (has_error() || cancelled)
-        return;
-      if (session.is_authenticated()) // ignore these events if the session is already auth'd
-        return;
-      
-      do_show_credentials_capture_pane(CredentialsCapturePane.Mode.FAILED_RETRY_URL);
+        if (has_error() || cancelled)
+            return;
+        if (session.is_authenticated()) // ignore these events if the session is already auth'd
+            return;
+
+        do_show_credentials_capture_pane(CredentialsCapturePane.Mode.FAILED_RETRY_URL);
     }
     
     // Helper method: retrieves session ID from RESTTransaction received
     private new string? get_pwg_id_from_transaction(RESTTransaction txn) {
-      string cookie = txn.get_message().response_headers.get("Set-Cookie");
-      if (cookie != "") {
-        string tmp = cookie.rstr("pwg_id=");
-        string[] values = tmp.split(";");
-        string pwg_id = values[0];
-        return pwg_id;
-      } else {
-        return "";
-      }
+        string cookie = txn.get_message().response_headers.get("Set-Cookie");
+        if (cookie != "") {
+            string tmp = cookie.rstr("pwg_id=");
+            string[] values = tmp.split(";");
+            string pwg_id = values[0];
+            return pwg_id;
+        } else {
+            return "";
+        }
     }
     
     // EVENT: triggered when network login is complete
     private void on_login_network_complete(RESTTransaction txn) {
-      if (has_error() || cancelled)
-        return;
-      
-      try {
-        RESTXmlDocument.parse_string(txn.get_response(), Transaction.check_response);
-      } catch (PublishingError err) {
-        // Get error code first
+        if (has_error() || cancelled)
+            return;
+
         try {
-          RESTXmlDocument.parse_string(txn.get_response(), Transaction.get_err_code);
-        } catch (PublishingError code) {
-          int code_int = code.message.to_int();
-          if (code_int == 999) {
-            do_show_credentials_capture_pane(CredentialsCapturePane.Mode.FAILED_RETRY_USER);
-          } else {
-            post_error(err);
-          }
+            RESTXmlDocument.parse_string(txn.get_response(), Transaction.check_response);
+        } catch (PublishingError err) {
+            // Get error code first
+            try {
+                RESTXmlDocument.parse_string(txn.get_response(), Transaction.get_err_code);
+            } catch (PublishingError code) {
+                int code_int = code.message.to_int();
+                if (code_int == 999) {
+                    do_show_credentials_capture_pane(CredentialsCapturePane.Mode.FAILED_RETRY_USER);
+                } else {
+                    post_error(err);
+                }
+            }
+            return;
         }
-        return;
-      }
-      
-      // Get session ID
-      string endpoint_url = txn.get_endpoint_url(); 
-      string pwg_id = get_pwg_id_from_transaction(txn);
-      session = new Session();
-      session.set_pwg_id(pwg_id);
-      
-      // Fetch session status with username
-      do_fetch_session_status(endpoint_url, pwg_id);
+
+        // Get session ID
+        string endpoint_url = txn.get_endpoint_url(); 
+        string pwg_id = get_pwg_id_from_transaction(txn);
+        session = new Session();
+        session.set_pwg_id(pwg_id);
+
+        // Fetch session status with username
+        do_fetch_session_status(endpoint_url, pwg_id);
     }
     
     // EVENT: Generic network error
     private void on_network_error(RESTTransaction bad_txn, PublishingError err) {
-      bad_txn.network_error.disconnect(on_network_error);
+        bad_txn.network_error.disconnect(on_network_error);
 
-      if (has_error() || cancelled)
-        return;
-      if (session.is_authenticated()) // ignore these events if the session is already auth'd
-        return;
-      
-      post_error(err);
+        if (has_error() || cancelled)
+            return;
+        if (session.is_authenticated()) // ignore these events if the session is already auth'd
+            return;
+
+        post_error(err);
     }
     
     // EVENT: session get status error
     private void on_session_get_status_error(RESTTransaction bad_txn, PublishingError err) {
-      bad_txn.completed.disconnect(on_session_get_status_complete);
-      on_network_error(bad_txn, err);
+        bad_txn.completed.disconnect(on_session_get_status_complete);
+        on_network_error(bad_txn, err);
     }
     
     // EVENT: done fetching session status
     private void on_session_get_status_complete(RESTTransaction txn) {
-      if (has_error() || cancelled)
-        return;
-      if (!session.is_authenticated()) {
-        string endpoint_url = txn.get_endpoint_url();
-        string pwg_id = session.get_pwg_id();
-        // Parse the response
-        try {
-          RESTXmlDocument doc = RESTXmlDocument.parse_string(txn.get_response(), Transaction.check_response);
-          Xml.Node* root = doc.get_root_node();
-          Xml.Node* username_node;
-          try {
-            username_node = doc.get_named_child(root, "username");
-            string username = username_node->get_content();
-            session.authenticate(endpoint_url, username, pwg_id);
-            do_fetch_categories();
-          } catch (PublishingError err2) {
-            post_error(err2);
+        if (has_error() || cancelled)
             return;
-          }
-        } catch (PublishingError err) {
-          post_error(err);
-          return;
+        if (!session.is_authenticated()) {
+            string endpoint_url = txn.get_endpoint_url();
+            string pwg_id = session.get_pwg_id();
+            // Parse the response
+            try {
+                RESTXmlDocument doc = RESTXmlDocument.parse_string(txn.get_response(), Transaction.check_response);
+                Xml.Node* root = doc.get_root_node();
+                Xml.Node* username_node;
+                try {
+                    username_node = doc.get_named_child(root, "username");
+                    string username = username_node->get_content();
+                    session.authenticate(endpoint_url, username, pwg_id);
+                    do_fetch_categories();
+                } catch (PublishingError err2) {
+                    post_error(err2);
+                    return;
+                }
+            } catch (PublishingError err) {
+                post_error(err);
+                return;
+            }
         }
-      }
     }
     
     // EVENT: fetch categories error
     private void on_category_fetch_error(RESTTransaction bad_txn, PublishingError err) {
-      bad_txn.completed.disconnect(on_category_fetch_complete);
-      on_network_error(bad_txn, err);
+        bad_txn.completed.disconnect(on_category_fetch_complete);
+        on_network_error(bad_txn, err);
     }
     
     // EVENT: fetch categories complete
     private void on_category_fetch_complete(RESTTransaction txn) {
-      debug("PiwigoConnector: list of categories: %s", txn.get_response());
-      if (has_error() || cancelled)
-        return;
-      // Empty the categories
-      if (categories != null) {
-        categories = null;
-      }
-      // Parse the response
-      try {
-        RESTXmlDocument doc = RESTXmlDocument.parse_string(txn.get_response(), Transaction.check_response);
-        Xml.Node* root = doc.get_root_node();
-        Xml.Node* categories_node = root->first_element_child();
-        Xml.Node* category_node_iter = categories_node->children;
-        Xml.Node* name_node;
-        string name = "";
-        string id_string = "";
-        for ( ; category_node_iter != null; category_node_iter = category_node_iter->next) {
-          name_node = doc.get_named_child(category_node_iter, "name");
-          name = name_node->get_content();
-          id_string = category_node_iter->get_prop("id");
-          if (categories == null) {
-            categories = new Category[0];
-          }
-          categories += Category(id_string.to_int(), name);
+        debug("PiwigoConnector: list of categories: %s", txn.get_response());
+        if (has_error() || cancelled)
+            return;
+        // Empty the categories
+        if (categories != null) {
+            categories = null;
         }
-      } catch (PublishingError err) {
-        post_error(err);
-        return;
-      }
-      
-      do_show_publishing_options_pane();
+        // Parse the response
+        try {
+            RESTXmlDocument doc = RESTXmlDocument.parse_string(txn.get_response(), Transaction.check_response);
+            Xml.Node* root = doc.get_root_node();
+            Xml.Node* categories_node = root->first_element_child();
+            Xml.Node* category_node_iter = categories_node->children;
+            Xml.Node* name_node;
+            string name = "";
+            string id_string = "";
+            for ( ; category_node_iter != null; category_node_iter = category_node_iter->next) {
+                name_node = doc.get_named_child(category_node_iter, "name");
+                name = name_node->get_content();
+                id_string = category_node_iter->get_prop("id");
+                if (categories == null) {
+                    categories = new Category[0];
+                }
+                categories += Category(id_string.to_int(), name);
+            }
+        } catch (PublishingError err) {
+            post_error(err);
+            return;
+        }
+
+        do_show_publishing_options_pane();
     }
     
     // EVENT: triggered when the user clicks "Logout" in the publishing options pane
     private void on_publishing_options_logout() {
-      if (has_error() || cancelled)
-          return;
-      
-      // Send logout transaction
-      SessionLogoutTransaction logout_trans = new SessionLogoutTransaction(session);
-      logout_trans.network_error.connect(on_logout_network_error);
-      logout_trans.completed.connect(on_logout_network_complete);
+        if (has_error() || cancelled)
+            return;
 
-      logout_trans.execute();
+        // Send logout transaction
+        SessionLogoutTransaction logout_trans = new SessionLogoutTransaction(session);
+        logout_trans.network_error.connect(on_logout_network_error);
+        logout_trans.completed.connect(on_logout_network_complete);
+
+        logout_trans.execute();
     }
     
     // EVENT : triggered on logout network error
     private void on_logout_network_error(RESTTransaction bad_txn, PublishingError err) {
-      bad_txn.completed.disconnect(on_logout_network_complete);
-      on_network_error(bad_txn, err);
+        bad_txn.completed.disconnect(on_logout_network_complete);
+        on_network_error(bad_txn, err);
     }
     
     // EVENT : triggered on logout network complete
     private void on_logout_network_complete(RESTTransaction txn) {
-      if (has_error() || cancelled)
-        return;
-      
-      txn.completed.disconnect(on_logout_network_complete);
-      txn.network_error.disconnect(on_logout_network_error);
-      
-      session.deauthenticate();
-      
-      do_show_credentials_capture_pane(CredentialsCapturePane.Mode.INTRO);
+        if (has_error() || cancelled)
+            return;
+
+        txn.completed.disconnect(on_logout_network_complete);
+        txn.network_error.disconnect(on_logout_network_error);
+
+        session.deauthenticate();
+
+        do_show_credentials_capture_pane(CredentialsCapturePane.Mode.INTRO);
     }
     
     // EVENT: triggered when the user clicks "Publish" in the publishing options pane
@@ -296,8 +296,8 @@ namespace PiwigoConnector {
     
     // EVENT: categories add error
     private void on_categories_add_error(RESTTransaction bad_txn, PublishingError err) {
-      bad_txn.completed.disconnect(on_categories_add_complete);
-      on_network_error(bad_txn, err);
+        bad_txn.completed.disconnect(on_categories_add_complete);
+        on_network_error(bad_txn, err);
     }
     
     // EVENT: triggered when the network transaction that creates a new category is completed
@@ -312,18 +312,17 @@ namespace PiwigoConnector {
 
         // Parse the response
         try {
-          RESTXmlDocument doc = RESTXmlDocument.parse_string(txn.get_response(), Transaction.check_response);
-          Xml.Node* rsp = doc.get_root_node();
-          Xml.Node* id_node;
-          id_node = doc.get_named_child(rsp, "id");
-          string id_string = id_node->get_content();
-          int id = id_string.to_int();
-          parameters.convert(id);
-          do_upload();
-          
+            RESTXmlDocument doc = RESTXmlDocument.parse_string(txn.get_response(), Transaction.check_response);
+            Xml.Node* rsp = doc.get_root_node();
+            Xml.Node* id_node;
+            id_node = doc.get_named_child(rsp, "id");
+            string id_string = id_node->get_content();
+            int id = id_string.to_int();
+            parameters.convert(id);
+            do_upload();
         } catch (PublishingError err) {
-          post_error(err);
-          return;
+            post_error(err);
+            return;
         }
     }
     
@@ -373,73 +372,73 @@ namespace PiwigoConnector {
     // ACTION: given a username and password, run a REST transaction over the network to
     //         log a user into the Picasa Web Albums service
     private void do_network_login(string url, string username, string password) {
-      debug("Piwigo.Interactor: logging in");
-      get_host().install_pane(new LoginWaitPane());
+        debug("Piwigo.Interactor: logging in");
+        get_host().install_pane(new LoginWaitPane());
 
-      get_host().lock_service();
-      get_host().set_cancel_button_mode();
-      
-      string my_url = url;
-      
-      if(!my_url.has_suffix(".php")) {
-        if(!my_url.has_suffix("/")) {
-          my_url = my_url + "/";
+        get_host().lock_service();
+        get_host().set_cancel_button_mode();
+
+        string my_url = url;
+
+        if(!my_url.has_suffix(".php")) {
+            if(!my_url.has_suffix("/")) {
+                my_url = my_url + "/";
+            }
+            my_url = my_url + PIWIGO_WS;
         }
-        my_url = my_url + PIWIGO_WS;
-      }
-      
-      if(!my_url.has_prefix("http://") && !my_url.has_prefix("https://")) {
-        my_url = "http://" + my_url;
-      }
 
-      SessionLoginTransaction login_trans = new SessionLoginTransaction(session, my_url, username, password);
-      login_trans.network_error.connect(on_login_network_error);
-      login_trans.completed.connect(on_login_network_complete);
+        if(!my_url.has_prefix("http://") && !my_url.has_prefix("https://")) {
+            my_url = "http://" + my_url;
+        }
 
-      login_trans.execute();
+        SessionLoginTransaction login_trans = new SessionLoginTransaction(session, my_url, username, password);
+        login_trans.network_error.connect(on_login_network_error);
+        login_trans.completed.connect(on_login_network_complete);
+
+        login_trans.execute();
     }
     
     // ACTION: fetches session status
     private void do_fetch_session_status(string url = "", string pwg_id = "") {
-      debug("Piwigo.Interactor: fetching session status");
-      if (!session.is_authenticated()) {
-        SessionGetStatusTransaction status_txn = new SessionGetStatusTransaction.unauthenticated(session, url, pwg_id);
-        status_txn.network_error.connect(on_session_get_status_error);
-        status_txn.completed.connect(on_session_get_status_complete);
-      
-        status_txn.execute();
-      } else {
-        SessionGetStatusTransaction status_txn = new SessionGetStatusTransaction(session);
-        status_txn.network_error.connect(on_session_get_status_error);
-        status_txn.completed.connect(on_session_get_status_complete);
-      
-        status_txn.execute();
-      }
+        debug("Piwigo.Interactor: fetching session status");
+        if (!session.is_authenticated()) {
+            SessionGetStatusTransaction status_txn = new SessionGetStatusTransaction.unauthenticated(session, url, pwg_id);
+            status_txn.network_error.connect(on_session_get_status_error);
+            status_txn.completed.connect(on_session_get_status_complete);
+
+            status_txn.execute();
+        } else {
+            SessionGetStatusTransaction status_txn = new SessionGetStatusTransaction(session);
+            status_txn.network_error.connect(on_session_get_status_error);
+            status_txn.completed.connect(on_session_get_status_complete);
+
+            status_txn.execute();
+        }
     }
     
     // ACTION: fetches the categories
     private void do_fetch_categories() {
-      debug("Piwigo.Interactor: fetching categories");
-      get_host().install_pane(new AccountFetchWaitPane());
+        debug("Piwigo.Interactor: fetching categories");
+        get_host().install_pane(new AccountFetchWaitPane());
 
-      get_host().lock_service();
-      get_host().set_cancel_button_mode();
+        get_host().lock_service();
+        get_host().set_cancel_button_mode();
 
-      CategoriesGetListTransaction cat_trans = new CategoriesGetListTransaction(session);
-      cat_trans.network_error.connect(on_category_fetch_error);
-      cat_trans.completed.connect(on_category_fetch_complete);
-      cat_trans.execute();
+        CategoriesGetListTransaction cat_trans = new CategoriesGetListTransaction(session);
+        cat_trans.network_error.connect(on_category_fetch_error);
+        cat_trans.completed.connect(on_category_fetch_complete);
+        cat_trans.execute();
     }
     
     // ACTION: display the publishing options pane in the publishing dialog
     private void do_show_publishing_options_pane() {
-      PublishingOptionsPane opts_pane = new PublishingOptionsPane(this, categories);
-      opts_pane.publish.connect(on_publishing_options_publish);
-      opts_pane.logout.connect(on_publishing_options_logout);
-      get_host().install_pane(opts_pane);
+        PublishingOptionsPane opts_pane = new PublishingOptionsPane(this, categories);
+        opts_pane.publish.connect(on_publishing_options_publish);
+        opts_pane.logout.connect(on_publishing_options_logout);
+        get_host().install_pane(opts_pane);
 
-      get_host().unlock_service();
-      get_host().set_cancel_button_mode();
+        get_host().unlock_service();
+        get_host().set_cancel_button_mode();
     }
     
     // ACTION: run a REST transaction over the network to create a new category with the parameters
@@ -488,34 +487,34 @@ namespace PiwigoConnector {
     }
     
     internal new PublishingDialog get_host() {
-      return base.get_host();
+        return base.get_host();
     }
     
     public override string get_name() {
-      return SERVICE_NAME;
+        return SERVICE_NAME;
     }
     
     internal Session get_session() {
-      return session;
+        return session;
     }
 
     public override void start_interaction() {
-      get_host().set_standard_window_mode();
+        get_host().set_standard_window_mode();
 
-      if (!session.is_authenticated()) {
-          do_show_credentials_capture_pane(CredentialsCapturePane.Mode.INTRO);
-      } else {
-          do_fetch_categories();
-      }
+        if (!session.is_authenticated()) {
+            do_show_credentials_capture_pane(CredentialsCapturePane.Mode.INTRO);
+        } else {
+            do_fetch_categories();
+        }
     }
 
     public override void cancel_interaction() {
-      cancelled = true;
-      session.stop_transactions();
+        cancelled = true;
+        session.stop_transactions();
     }
-  }
+}
   
-  private class Uploader : BatchUploader {
+private class Uploader : BatchUploader {
     private PublishingParameters parameters;
     private Session session;
 
@@ -527,32 +526,32 @@ namespace PiwigoConnector {
     }
 
     protected override bool prepare_file(BatchUploader.TemporaryFileDescriptor file) {
-      Scaling scaling = Scaling.for_original();
-      
-      try {
-        ((Photo) file.media).export(file.temp_file, scaling, Jpeg.Quality.MAXIMUM, PhotoFileFormat.JFIF);
-      } catch (Error e) {
-        return false;
-      }
-        
-      return true;
+        Scaling scaling = Scaling.for_original();
+
+        try {
+            ((Photo) file.media).export(file.temp_file, scaling, Jpeg.Quality.MAXIMUM, PhotoFileFormat.JFIF);
+        } catch (Error e) {
+            return false;
+        }
+
+        return true;
     }
 
     protected override RESTTransaction create_transaction_for_file(BatchUploader.TemporaryFileDescriptor file) {
         return new ImagesAddTransaction(session, parameters, file.temp_file.get_path(), file.media);
     }
-  }
+}
   
-  private class CredentialsCapturePane : PublishingDialogPane {
+private class CredentialsCapturePane : PublishingDialogPane {
     public enum Mode {
-      INTRO,
-      FAILED_RETRY_URL,
-      FAILED_RETRY_USER
+        INTRO,
+        FAILED_RETRY_URL,
+        FAILED_RETRY_USER
     }
     private const string INTRO_MESSAGE = _("Enter the username and password associated with your Piwigo account, and the URL of your Piwigo installation.");
     private const string FAILED_RETRY_URL_MESSAGE = _("No Piwigo installation was found at this URL. Please verify the URL you entered");
     private const string FAILED_RETRY_USER_MESSAGE = _("Username and/or password invalid. Please try again");
-    
+
     private const int UNIFORM_ACTION_BUTTON_WIDTH = 102;
 
     private Gtk.Entry url_entry;
@@ -564,85 +563,85 @@ namespace PiwigoConnector {
     public signal void login(string url, string user, string password);
 
     public CredentialsCapturePane(Interactor interactor, Mode mode = Mode.INTRO) {
-      this.interactor = interactor;
+        this.interactor = interactor;
 
-      Gtk.SeparatorToolItem top_space = new Gtk.SeparatorToolItem();
-      top_space.set_draw(false);
-      Gtk.SeparatorToolItem bottom_space = new Gtk.SeparatorToolItem();
-      bottom_space.set_draw(false);
-      add(top_space);
-      top_space.set_size_request(-1, 40);
+        Gtk.SeparatorToolItem top_space = new Gtk.SeparatorToolItem();
+        top_space.set_draw(false);
+        Gtk.SeparatorToolItem bottom_space = new Gtk.SeparatorToolItem();
+        bottom_space.set_draw(false);
+        add(top_space);
+        top_space.set_size_request(-1, 40);
 
-      Gtk.Label intro_message_label = new Gtk.Label("");
-      intro_message_label.set_line_wrap(true);
-      add(intro_message_label);
-      intro_message_label.set_size_request(PublishingDialog.STANDARD_CONTENT_LABEL_WIDTH, -1);
-      intro_message_label.set_alignment(0.5f, 0.0f);
-      switch (mode) {
-        case Mode.INTRO:
-          intro_message_label.set_text(INTRO_MESSAGE);
-        break;
+        Gtk.Label intro_message_label = new Gtk.Label("");
+        intro_message_label.set_line_wrap(true);
+        add(intro_message_label);
+        intro_message_label.set_size_request(PublishingDialog.STANDARD_CONTENT_LABEL_WIDTH, -1);
+        intro_message_label.set_alignment(0.5f, 0.0f);
+        switch (mode) {
+            case Mode.INTRO:
+                intro_message_label.set_text(INTRO_MESSAGE);
+                break;
 
-        case Mode.FAILED_RETRY_URL:
-          intro_message_label.set_markup("<b>%s</b>\n\n%s".printf(_(
-              "Invalid URL"), FAILED_RETRY_URL_MESSAGE));
-        break;
-        
-        case Mode.FAILED_RETRY_USER:
-          intro_message_label.set_markup("<b>%s</b>\n\n%s".printf(_(
-              "Unrecognized User"), FAILED_RETRY_USER_MESSAGE));
-        break;
-      }
+            case Mode.FAILED_RETRY_URL:
+                intro_message_label.set_markup("<b>%s</b>\n\n%s".printf(_(
+                    "Invalid URL"), FAILED_RETRY_URL_MESSAGE));
+                break;
 
-      Gtk.Alignment entry_widgets_table_aligner = new Gtk.Alignment(0.5f, 0.5f, 0.0f, 0.0f);
-      Gtk.Table entry_widgets_table = new Gtk.Table(4,2, false);
-      Gtk.Label url_entry_label = new Gtk.Label.with_mnemonic(_("_URL of your Piwigo installation:"));
-      url_entry_label.set_alignment(0.0f, 0.5f);
-      Gtk.Label user_entry_label = new Gtk.Label.with_mnemonic(_("_Username:"));
-      user_entry_label.set_alignment(0.0f, 0.5f);
-      Gtk.Label password_entry_label = new Gtk.Label.with_mnemonic(_("_Password:"));
-      password_entry_label.set_alignment(0.0f, 0.5f);
-      url_entry = new Gtk.Entry();
-      user_entry = new Gtk.Entry();
-      user_entry.changed.connect(on_user_changed);
-      password_entry = new Gtk.Entry();
-      password_entry.set_visibility(false);
-      entry_widgets_table.attach(url_entry_label, 0, 1, 0, 1,
-          Gtk.AttachOptions.EXPAND | Gtk.AttachOptions.FILL,
-          Gtk.AttachOptions.EXPAND | Gtk.AttachOptions.FILL, 6, 6);
-      entry_widgets_table.attach(user_entry_label, 0, 1, 1, 2,
-          Gtk.AttachOptions.EXPAND | Gtk.AttachOptions.FILL,
-          Gtk.AttachOptions.EXPAND | Gtk.AttachOptions.FILL, 6, 6);
-      entry_widgets_table.attach(password_entry_label, 0, 1, 2, 3,
-          Gtk.AttachOptions.EXPAND | Gtk.AttachOptions.FILL,
-          Gtk.AttachOptions.EXPAND | Gtk.AttachOptions.FILL, 6, 6);
-      entry_widgets_table.attach(url_entry, 1, 2, 0, 1,
-          Gtk.AttachOptions.EXPAND | Gtk.AttachOptions.FILL,
-          Gtk.AttachOptions.EXPAND | Gtk.AttachOptions.FILL, 6, 6);
-      entry_widgets_table.attach(user_entry, 1, 2, 1, 2,
-          Gtk.AttachOptions.EXPAND | Gtk.AttachOptions.FILL,
-          Gtk.AttachOptions.EXPAND | Gtk.AttachOptions.FILL, 6, 6);
-      entry_widgets_table.attach(password_entry, 1, 2, 2, 3,
-          Gtk.AttachOptions.EXPAND | Gtk.AttachOptions.FILL,
-          Gtk.AttachOptions.EXPAND | Gtk.AttachOptions.FILL, 6, 6);
-      login_button = new Gtk.Button.with_mnemonic(_("_Login"));
-      login_button.clicked.connect(on_login_button_clicked);
-      login_button.set_sensitive(false);
-      Gtk.Alignment login_button_aligner = new Gtk.Alignment(1.0f, 0.5f, 0.0f, 0.0f);
-      login_button_aligner.add(login_button);
-      login_button.set_size_request(UNIFORM_ACTION_BUTTON_WIDTH, -1);
-      entry_widgets_table.attach(login_button_aligner, 1, 2, 3, 4,
-          Gtk.AttachOptions.EXPAND | Gtk.AttachOptions.FILL,
-          Gtk.AttachOptions.EXPAND | Gtk.AttachOptions.FILL, 6, 40);
-      entry_widgets_table_aligner.add(entry_widgets_table);
-      add(entry_widgets_table_aligner);
+            case Mode.FAILED_RETRY_USER:
+                intro_message_label.set_markup("<b>%s</b>\n\n%s".printf(_(
+                    "Unrecognized User"), FAILED_RETRY_USER_MESSAGE));
+                break;
+        }
 
-      url_entry_label.set_mnemonic_widget(url_entry);
-      user_entry_label.set_mnemonic_widget(user_entry);
-      password_entry_label.set_mnemonic_widget(password_entry);
+        Gtk.Alignment entry_widgets_table_aligner = new Gtk.Alignment(0.5f, 0.5f, 0.0f, 0.0f);
+        Gtk.Table entry_widgets_table = new Gtk.Table(4,2, false);
+        Gtk.Label url_entry_label = new Gtk.Label.with_mnemonic(_("_URL of your Piwigo installation:"));
+        url_entry_label.set_alignment(0.0f, 0.5f);
+        Gtk.Label user_entry_label = new Gtk.Label.with_mnemonic(_("_Username:"));
+        user_entry_label.set_alignment(0.0f, 0.5f);
+        Gtk.Label password_entry_label = new Gtk.Label.with_mnemonic(_("_Password:"));
+        password_entry_label.set_alignment(0.0f, 0.5f);
+        url_entry = new Gtk.Entry();
+        user_entry = new Gtk.Entry();
+        user_entry.changed.connect(on_user_changed);
+        password_entry = new Gtk.Entry();
+        password_entry.set_visibility(false);
+        entry_widgets_table.attach(url_entry_label, 0, 1, 0, 1,
+            Gtk.AttachOptions.EXPAND | Gtk.AttachOptions.FILL,
+            Gtk.AttachOptions.EXPAND | Gtk.AttachOptions.FILL, 6, 6);
+        entry_widgets_table.attach(user_entry_label, 0, 1, 1, 2,
+            Gtk.AttachOptions.EXPAND | Gtk.AttachOptions.FILL,
+            Gtk.AttachOptions.EXPAND | Gtk.AttachOptions.FILL, 6, 6);
+        entry_widgets_table.attach(password_entry_label, 0, 1, 2, 3,
+            Gtk.AttachOptions.EXPAND | Gtk.AttachOptions.FILL,
+            Gtk.AttachOptions.EXPAND | Gtk.AttachOptions.FILL, 6, 6);
+        entry_widgets_table.attach(url_entry, 1, 2, 0, 1,
+            Gtk.AttachOptions.EXPAND | Gtk.AttachOptions.FILL,
+            Gtk.AttachOptions.EXPAND | Gtk.AttachOptions.FILL, 6, 6);
+        entry_widgets_table.attach(user_entry, 1, 2, 1, 2,
+            Gtk.AttachOptions.EXPAND | Gtk.AttachOptions.FILL,
+            Gtk.AttachOptions.EXPAND | Gtk.AttachOptions.FILL, 6, 6);
+        entry_widgets_table.attach(password_entry, 1, 2, 2, 3,
+            Gtk.AttachOptions.EXPAND | Gtk.AttachOptions.FILL,
+            Gtk.AttachOptions.EXPAND | Gtk.AttachOptions.FILL, 6, 6);
+        login_button = new Gtk.Button.with_mnemonic(_("_Login"));
+        login_button.clicked.connect(on_login_button_clicked);
+        login_button.set_sensitive(false);
+        Gtk.Alignment login_button_aligner = new Gtk.Alignment(1.0f, 0.5f, 0.0f, 0.0f);
+        login_button_aligner.add(login_button);
+        login_button.set_size_request(UNIFORM_ACTION_BUTTON_WIDTH, -1);
+        entry_widgets_table.attach(login_button_aligner, 1, 2, 3, 4,
+            Gtk.AttachOptions.EXPAND | Gtk.AttachOptions.FILL,
+            Gtk.AttachOptions.EXPAND | Gtk.AttachOptions.FILL, 6, 40);
+        entry_widgets_table_aligner.add(entry_widgets_table);
+        add(entry_widgets_table_aligner);
 
-      add(bottom_space);
-      bottom_space.set_size_request(-1, 40);
+        url_entry_label.set_mnemonic_widget(url_entry);
+        user_entry_label.set_mnemonic_widget(user_entry);
+        password_entry_label.set_mnemonic_widget(password_entry);
+
+        add(bottom_space);
+        bottom_space.set_size_request(-1, 40);
     }
 
     private void on_login_button_clicked() {
@@ -659,9 +658,9 @@ namespace PiwigoConnector {
         login_button.can_default = true;
         interactor.get_host().set_default(login_button);
     }
-  }
+}
   
-  private class PublishingOptionsPane : PublishingDialogPane {
+private class PublishingOptionsPane : PublishingDialogPane {
     private struct PermsDescription {
         string name;
         int level;
@@ -830,8 +829,8 @@ namespace PiwigoConnector {
             string category_name = new_category_entry.get_text();
             publish(new PublishingParameters.to_new_category(category_name, level));
         } else {
-          int category_id = categories[existing_categories_combo.get_active()].id;
-          publish(new PublishingParameters.to_existing_category(category_id, level));
+            int category_id = categories[existing_categories_combo.get_active()].id;
+            publish(new PublishingParameters.to_existing_category(category_id, level));
         }
     }
 
@@ -903,51 +902,51 @@ namespace PiwigoConnector {
         }
         update_publish_button_sensitivity();
     }
-  }
+}
 
   
   
-  private class Session : RESTSession {
+private class Session : RESTSession {
     private string pwg_url = null;
     private string pwg_id = null;
     private string username = null;
 
     public Session() {
-      base("");
-      if (has_persistent_state())
-        load_persistent_state();
+        base("");
+        if (has_persistent_state())
+            load_persistent_state();
     }
 
     private bool has_persistent_state() {
-      Config config = Config.get_instance();
+        Config config = Config.get_instance();
 
-      return ((config.get_publishing_string(CONFIG_NAME, "url") != null) &&
-              (config.get_publishing_string(CONFIG_NAME, "username") != null) &&
-              (config.get_publishing_string(CONFIG_NAME, "id") != null));
+        return ((config.get_publishing_string(CONFIG_NAME, "url") != null) &&
+            (config.get_publishing_string(CONFIG_NAME, "username") != null) &&
+            (config.get_publishing_string(CONFIG_NAME, "id") != null));
     }
-    
+
     private void save_persistent_state() {
-      Config config = Config.get_instance();
-      
-      config.set_publishing_string(CONFIG_NAME, "url", pwg_url);
-      config.set_publishing_string(CONFIG_NAME, "username", username);
-      config.set_publishing_string(CONFIG_NAME, "id", pwg_id);
+        Config config = Config.get_instance();
+
+        config.set_publishing_string(CONFIG_NAME, "url", pwg_url);
+        config.set_publishing_string(CONFIG_NAME, "username", username);
+        config.set_publishing_string(CONFIG_NAME, "id", pwg_id);
     }
 
     private void load_persistent_state() {
-      Config config = Config.get_instance();
+        Config config = Config.get_instance();
 
-      pwg_url = config.get_publishing_string(CONFIG_NAME, "url");
-      username = config.get_publishing_string(CONFIG_NAME, "username");
-      pwg_id = config.get_publishing_string(CONFIG_NAME, "id");
+        pwg_url = config.get_publishing_string(CONFIG_NAME, "url");
+        username = config.get_publishing_string(CONFIG_NAME, "username");
+        pwg_id = config.get_publishing_string(CONFIG_NAME, "id");
     }
-    
-    private void clear_persistent_state() {
-      Config config = Config.get_instance();
 
-      config.set_publishing_string(CONFIG_NAME, "url", "");
-      config.set_publishing_string(CONFIG_NAME, "username", "");
-      config.set_publishing_string(CONFIG_NAME, "id", "");
+    private void clear_persistent_state() {
+        Config config = Config.get_instance();
+
+        config.set_publishing_string(CONFIG_NAME, "url", "");
+        config.set_publishing_string(CONFIG_NAME, "username", "");
+        config.set_publishing_string(CONFIG_NAME, "id", "");
     }
 
     public bool is_authenticated() {
@@ -955,227 +954,226 @@ namespace PiwigoConnector {
     }
 
     public void authenticate(string url, string username, string id) {
-      this.pwg_url = url;
-      this.username = username;
-      this.pwg_id = id;
-      
-      save_persistent_state();
+        this.pwg_url = url;
+        this.username = username;
+        this.pwg_id = id;
+
+        save_persistent_state();
     }
-    
+
     public void deauthenticate() {
-      pwg_url = null;
-      username = null;
-      pwg_id = null;
-      
-      clear_persistent_state();
+        pwg_url = null;
+        username = null;
+        pwg_id = null;
+
+        clear_persistent_state();
     }
 
     public string get_username() {
-      return username;
+        return username;
     }
-    
+
     public string get_pwg_url() {
-      return pwg_url;
+        return pwg_url;
     }
 
     public string get_pwg_id() {
-      return pwg_id;
+        return pwg_id;
     }
-    
+
     public void set_pwg_id(string id) {
-      pwg_id = id;
+        pwg_id = id;
     }
-  }
+}
   
-  private class Transaction : RESTTransaction {
+private class Transaction : RESTTransaction {
     public Transaction(Session session) {
-      base(session);
-      if (session.is_authenticated()) {
-        add_header("Cookie", session.get_pwg_id());
-      }
+        base(session);
+        if (session.is_authenticated()) {
+            add_header("Cookie", session.get_pwg_id());
+        }
     }
-    
+
     public Transaction.authenticated(Session session) {
-      base.with_endpoint_url(session, session.get_pwg_url());
-      add_header("Cookie", session.get_pwg_id());
+        base.with_endpoint_url(session, session.get_pwg_url());
+        add_header("Cookie", session.get_pwg_id());
     }
-    
+
     public static new string? check_response(RESTXmlDocument doc) {
-      Xml.Node* root = doc.get_root_node();
-      string? status = root->get_prop("stat");
-      
-      // treat malformed root as an error condition
-      if (status == null)
-          return "No status property in root node";
-      
-      if (status == "ok")
-          return null;
-      
-      Xml.Node* errcode;
-      try {
-          errcode = doc.get_named_child(root, "err");
-      } catch (PublishingError err) {
-          return "No error code specified";
-      }
-      
-      return "%s (error code %s)".printf(errcode->get_prop("msg"), errcode->get_prop("code"));
+        Xml.Node* root = doc.get_root_node();
+        string? status = root->get_prop("stat");
+
+        // treat malformed root as an error condition
+        if (status == null)
+            return "No status property in root node";
+
+        if (status == "ok")
+            return null;
+
+        Xml.Node* errcode;
+        try {
+            errcode = doc.get_named_child(root, "err");
+        } catch (PublishingError err) {
+            return "No error code specified";
+        }
+
+        return "%s (error code %s)".printf(errcode->get_prop("msg"), errcode->get_prop("code"));
     }
-    
+
     public static new string? get_err_code(RESTXmlDocument doc) {
-      Xml.Node* root = doc.get_root_node();
-      Xml.Node* errcode;
-      try {
-        errcode = doc.get_named_child(root, "err");
-      } catch (PublishingError err) {
-          return "0";
-      }
-      return errcode->get_prop("code");
+        Xml.Node* root = doc.get_root_node();
+        Xml.Node* errcode;
+        try {
+            errcode = doc.get_named_child(root, "err");
+        } catch (PublishingError err) {
+            return "0";
+        }
+        return errcode->get_prop("code");
     }
-  }
+}
   
-  private class SessionLoginTransaction : Transaction {
+private class SessionLoginTransaction : Transaction {
     public SessionLoginTransaction(Session session, string url, string username, string password) {
-      base.with_endpoint_url(session, url);
-      
-      add_argument("method", "pwg.session.login");
-      add_argument("username", username);
-      add_argument("password", password);
+        base.with_endpoint_url(session, url);
+
+        add_argument("method", "pwg.session.login");
+        add_argument("username", username);
+        add_argument("password", password);
     }
-  }
-  
-  private class SessionGetStatusTransaction : Transaction {
+}
+
+private class SessionGetStatusTransaction : Transaction {
     public SessionGetStatusTransaction.unauthenticated(Session session, string url, string pwg_id) {
-      base.with_endpoint_url(session, url);
-      add_header("Cookie", pwg_id);
-      
-      add_argument("method", "pwg.session.getStatus");
+        base.with_endpoint_url(session, url);
+        add_header("Cookie", pwg_id);
+
+        add_argument("method", "pwg.session.getStatus");
     }
-    
+
     public SessionGetStatusTransaction(Session session) {
-      base.authenticated(session);
-      
-      add_argument("method", "pwg.session.getStatus");
+        base.authenticated(session);
+
+        add_argument("method", "pwg.session.getStatus");
     }
-  }
-  
-  private class CategoriesGetListTransaction : Transaction {
+}
+
+private class CategoriesGetListTransaction : Transaction {
     public CategoriesGetListTransaction(Session session) {
-      base.authenticated(session);
-      
-      add_argument("method", "pwg.categories.getList");
+        base.authenticated(session);
+
+        add_argument("method", "pwg.categories.getList");
     }
-  }
-  
-  private class SessionLogoutTransaction : Transaction {
+}
+
+private class SessionLogoutTransaction : Transaction {
     public SessionLogoutTransaction(Session session) {
-      base.authenticated(session);
+        base.authenticated(session);
       
-      add_argument("method", "pwg.session.logout");
+        add_argument("method", "pwg.session.logout");
     }
-  }
-  
-  private class CategoriesAddTransaction : Transaction {
+}
+
+private class CategoriesAddTransaction : Transaction {
     public CategoriesAddTransaction(Session session, string category, int parent_id = 0) {
-      base.authenticated(session);
-      
-      add_argument("method", "pwg.categories.add");
-      add_argument("name", category);
-      
-      if (parent_id != 0) {
-        add_argument("parent", parent_id.to_string());
-      }
+        base.authenticated(session);
+
+        add_argument("method", "pwg.categories.add");
+        add_argument("name", category);
+
+        if (parent_id != 0) {
+            add_argument("parent", parent_id.to_string());
+        }
     }
-  }
-  
-  private class ImagesAddTransaction : Transaction {
+}
+
+private class ImagesAddTransaction : Transaction {
     private Session session_copy = null;
     private string source_file;
     private MediaSource media_source;
     private GLib.HashTable<string, string> binary_disposition_table = null;
-    
-    public ImagesAddTransaction(Session session, PublishingParameters parameters, string source_file, MediaSource media_source) {
-      base.authenticated(session);
-      debug("PiwigoConnector: Uploading photo %s", media_source.get_name());
-      this.session_copy = session;
-      this.source_file = source_file;
-      this.media_source = media_source;
-      
-      add_argument("method", "pwg.images.addSimple");
-      add_argument("category", parameters.get_category_id().to_string());
-      add_argument("name", media_source.get_title());
-      add_argument("level", parameters.get_perm_level().to_string());
 
-      // TODO: add tags and description, author etc...
-      
-      GLib.HashTable<string, string> disposition_table = new GLib.HashTable<string, string>(GLib.str_hash, GLib.str_equal);
-      disposition_table.insert("filename", media_source.get_name());
-      disposition_table.insert("name", "image");
-      set_binary_disposition_table(disposition_table);
+    public ImagesAddTransaction(Session session, PublishingParameters parameters, string source_file, MediaSource media_source) {
+        base.authenticated(session);
+        debug("PiwigoConnector: Uploading photo %s", media_source.get_name());
+        this.session_copy = session;
+        this.source_file = source_file;
+        this.media_source = media_source;
+
+        add_argument("method", "pwg.images.addSimple");
+        add_argument("category", parameters.get_category_id().to_string());
+        add_argument("name", media_source.get_title());
+        add_argument("level", parameters.get_perm_level().to_string());
+
+        // TODO: add tags and description, author etc...
+
+        GLib.HashTable<string, string> disposition_table = new GLib.HashTable<string, string>(GLib.str_hash, GLib.str_equal);
+        disposition_table.insert("filename", media_source.get_name());
+        disposition_table.insert("name", "image");
+        set_binary_disposition_table(disposition_table);
     }
-    
+
     protected void set_binary_disposition_table(GLib.HashTable<string, string> new_disp_table) {
-      binary_disposition_table = new_disp_table;
+        binary_disposition_table = new_disp_table;
     }
-  
+
     // Need to copy and paste this method to add the cookie header to the sent message.
     public override void execute() {
-      sign();
+        sign();
 
-      // before they can be executed, photo upload requests must be signed and must
-      // contain at least one argument
-      assert(get_is_signed());
+        // before they can be executed, photo upload requests must be signed and must
+        // contain at least one argument
+        assert(get_is_signed());
 
-      RESTArgument[] request_arguments = get_arguments();
-      assert(request_arguments.length > 0);
+        RESTArgument[] request_arguments = get_arguments();
+        assert(request_arguments.length > 0);
 
-      // create the multipart request container
-      Soup.Multipart message_parts = new Soup.Multipart("multipart/form-data");
+        // create the multipart request container
+        Soup.Multipart message_parts = new Soup.Multipart("multipart/form-data");
 
-      // attach each REST argument as its own multipart formdata part
-      foreach (RESTArgument arg in request_arguments)
-          message_parts.append_form_string(arg.key, arg.value);
-      
-      // append the signature key-value pair to the formdata string
-      message_parts.append_form_string(get_signature_key(), get_signature_value());
+        // attach each REST argument as its own multipart formdata part
+        foreach (RESTArgument arg in request_arguments)
+            message_parts.append_form_string(arg.key, arg.value);
 
-      // attempt to read the binary image data from disk
-      string photo_data;
-      size_t data_length;
-      try {
-          FileUtils.get_contents(source_file, out photo_data, out data_length);
-      } catch (FileError e) {
-          error("PhotoUploadTransaction: couldn't read data from file '%s'", source_file);
-      }
+        // append the signature key-value pair to the formdata string
+        message_parts.append_form_string(get_signature_key(), get_signature_value());
 
-      // get the sequence number of the part that will soon become the binary image data
-      // part
-      int image_part_num = message_parts.get_length();
+        // attempt to read the binary image data from disk
+        string photo_data;
+        size_t data_length;
+        try {
+            FileUtils.get_contents(source_file, out photo_data, out data_length);
+        } catch (FileError e) {
+            error("PhotoUploadTransaction: couldn't read data from file '%s'", source_file);
+        }
 
-      // bind the binary image data read from disk into a Soup.Buffer object so that we
-      // can attach it to the multipart request, then actaully append the buffer
-      // to the multipart request. Then, set the MIME type for this part.
-      Soup.Buffer bindable_data = new Soup.Buffer(Soup.MemoryUse.COPY, photo_data, data_length);
-      message_parts.append_form_file("", source_file, "image/jpeg", bindable_data);
+        // get the sequence number of the part that will soon become the binary image data
+        // part
+        int image_part_num = message_parts.get_length();
 
-      // set up the Content-Disposition header for the multipart part that contains the
-      // binary image data
-      unowned Soup.MessageHeaders image_part_header;
-      unowned Soup.Buffer image_part_body;
-      message_parts.get_part(image_part_num, out image_part_header, out image_part_body);
-      image_part_header.set_content_disposition("form-data", binary_disposition_table);
+        // bind the binary image data read from disk into a Soup.Buffer object so that we
+        // can attach it to the multipart request, then actaully append the buffer
+        // to the multipart request. Then, set the MIME type for this part.
+        Soup.Buffer bindable_data = new Soup.Buffer(Soup.MemoryUse.COPY, photo_data, data_length);
+        message_parts.append_form_file("", source_file, "image/jpeg", bindable_data);
 
-      // create a message that can be sent over the wire whose payload is the multipart container
-      // that we've been building up
-      Soup.Message outbound_message =
-          Soup.form_request_new_from_multipart(get_endpoint_url(), message_parts);
-      outbound_message.request_headers.append("Cookie", session_copy.get_pwg_id());
-      set_message(outbound_message);
-      
-      // send the message and get its response
-      set_is_executed(true);
-      send();
+        // set up the Content-Disposition header for the multipart part that contains the
+        // binary image data
+        unowned Soup.MessageHeaders image_part_header;
+        unowned Soup.Buffer image_part_body;
+        message_parts.get_part(image_part_num, out image_part_header, out image_part_body);
+        image_part_header.set_content_disposition("form-data", binary_disposition_table);
+
+        // create a message that can be sent over the wire whose payload is the multipart container
+        // that we've been building up
+        Soup.Message outbound_message = Soup.form_request_new_from_multipart(get_endpoint_url(), message_parts);
+        outbound_message.request_headers.append("Cookie", session_copy.get_pwg_id());
+        set_message(outbound_message);
+
+        // send the message and get its response
+        set_is_executed(true);
+        send();
     }
-  }
+}
 }
 
 #endif
