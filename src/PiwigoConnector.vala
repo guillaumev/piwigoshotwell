@@ -131,6 +131,9 @@ public class Interactor : ServiceInteractor {
     
     // EVENT: triggered when network login is complete
     private void on_login_network_complete(RESTTransaction txn) {
+        txn.completed.disconnect(on_login_network_complete);
+        txn.network_error.disconnect(on_login_network_error);
+        
         if (has_error() || cancelled)
             return;
 
@@ -163,11 +166,8 @@ public class Interactor : ServiceInteractor {
     
     // EVENT: Generic network error
     private void on_network_error(RESTTransaction bad_txn, PublishingError err) {
-        bad_txn.network_error.disconnect(on_network_error);
 
         if (has_error() || cancelled)
-            return;
-        if (session.is_authenticated()) // ignore these events if the session is already auth'd
             return;
 
         post_error(err);
@@ -176,11 +176,14 @@ public class Interactor : ServiceInteractor {
     // EVENT: session get status error
     private void on_session_get_status_error(RESTTransaction bad_txn, PublishingError err) {
         bad_txn.completed.disconnect(on_session_get_status_complete);
+        bad_txn.network_error.disconnect(on_session_get_status_error);
         on_network_error(bad_txn, err);
     }
     
     // EVENT: done fetching session status
     private void on_session_get_status_complete(RESTTransaction txn) {
+        txn.completed.disconnect(on_session_get_status_complete);
+        txn.network_error.disconnect(on_session_get_status_error);
         if (has_error() || cancelled)
             return;
         if (!session.is_authenticated()) {
@@ -210,11 +213,14 @@ public class Interactor : ServiceInteractor {
     // EVENT: fetch categories error
     private void on_category_fetch_error(RESTTransaction bad_txn, PublishingError err) {
         bad_txn.completed.disconnect(on_category_fetch_complete);
+        bad_txn.network_error.disconnect(on_category_fetch_error);
         on_network_error(bad_txn, err);
     }
     
     // EVENT: fetch categories complete
     private void on_category_fetch_complete(RESTTransaction txn) {
+        txn.completed.disconnect(on_category_fetch_complete);
+        txn.network_error.disconnect(on_category_fetch_error);
         debug("PiwigoConnector: list of categories: %s", txn.get_response());
         if (has_error() || cancelled)
             return;
@@ -264,11 +270,14 @@ public class Interactor : ServiceInteractor {
     // EVENT : triggered on logout network error
     private void on_logout_network_error(RESTTransaction bad_txn, PublishingError err) {
         bad_txn.completed.disconnect(on_logout_network_complete);
+        bad_txn.network_error.disconnect(on_logout_network_error);
         on_network_error(bad_txn, err);
     }
     
     // EVENT : triggered on logout network complete
     private void on_logout_network_complete(RESTTransaction txn) {
+        txn.completed.disconnect(on_logout_network_complete);
+        txn.network_error.disconnect(on_logout_network_error);
         if (has_error() || cancelled)
             return;
 
@@ -297,6 +306,7 @@ public class Interactor : ServiceInteractor {
     // EVENT: categories add error
     private void on_categories_add_error(RESTTransaction bad_txn, PublishingError err) {
         bad_txn.completed.disconnect(on_categories_add_complete);
+        bad_txn.network_error.disconnect(on_categories_add_error);
         on_network_error(bad_txn, err);
     }
     
