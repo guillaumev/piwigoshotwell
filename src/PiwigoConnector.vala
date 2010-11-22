@@ -1126,6 +1126,9 @@ private class ImagesAddTransaction : Transaction {
         }
         debug("photo: '%s', tags: '%s'", photo.get_title(), tags);
         
+        PhotoMetadata meta = photo.get_metadata();
+        string author = meta.get_artist();
+        
         debug("PiwigoConnector: Uploading photo %s to category id %s with perm level %s", media_source.get_name(), parameters.get_category_id().to_string(), parameters.get_perm_level().to_string());
         add_argument("method", "pwg.images.addSimple");
         add_argument("category", parameters.get_category_id().to_string());
@@ -1134,8 +1137,12 @@ private class ImagesAddTransaction : Transaction {
         if (tags != "") {
             add_argument("tags", tags);
         }
+        
+        if (author != "") {
+            add_argument("author", author);
+        }
 
-        // TODO: add description, author etc...
+        // TODO: add description
 
         GLib.HashTable<string, string> disposition_table = new GLib.HashTable<string, string>(GLib.str_hash, GLib.str_equal);
         disposition_table.insert("filename", media_source.get_name());
